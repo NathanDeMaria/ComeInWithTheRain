@@ -8,7 +8,6 @@ library(RPushbullet)
 library(purrr)
 library(tibble)
 library(dplyr)
-library(stringr)
 
 
 # Config ####
@@ -65,12 +64,18 @@ is_rainy <- function(x) grepl('([Ss]hower|[Tt]hunderstorms)', x)
 # forecast$shortForecast %>% unique() %>% keep(is_rainy)
 
 grid_url <- get_grid_url(LATITUDE, LONGITUDE)
+str_match <- function(x, pattern) {
+  # This is the same as stringr::str_match
+  # but stringi is too big for AWS Lambda
+  m <- regexec(pattern, x)
+  regmatches(x, m) %>% map_chr(~.x[2])
+}
 forecast <- glue('{grid_url}/forecast') %>%
   get_from_noaa() %>%
   content_from_noaa() %>%
   .[['properties']] %>% .[['periods']] %>%
   map(nulls_to_nas) %>% map(as_tibble_row) %>% bind_rows()
-forecast <- forecast %>% mutate(precipitation_chance = detailedForecast %>% str_match('[Cc]hance of precipitation is ([0-9]+)%') %>% .[,2] %>% as.numeric())
+forecast <- forecast %>% mutate(precipitation_chance = detailedForecast %>% str_match('[Cc]hance of precipitation is ([0-9]+)%') %>% as.numeric())
 next_chance_of_rain <- forecast %>% filter(is_rainy(shortForecast) | !is.na(precipitation_chance)) %>%
   mutate(startTime = ymd_hms(startTime)) %>%
   arrange(startTime) %>%
@@ -134,15 +139,22 @@ station_id <- get_nearby_stations(grid_url)$stationIdentifier[1]
 rain <- get_rain(station_id)
 rain_in <- sum(rain$rain_m) * 39.3700787
 
-message_body <- glue(
-  "Rained {round(rain_in, 2)} inches this past week.\nNext rain: {pct}% on {name}.",
-  pct = next_chance_of_rain$precipitation_chance,
-  name = next_chance_of_rain$name
-)
 
-pbPost(
-  "note", 
-  title = 'Do you need to water?',
-  body = message_body,
-  apikey = PUSH_API_KEY,
-  devices = PUSH_DEVICE_ID)
+message_body <- if (nrow(next_chance_of_rain)) {
+  glue(
+    "Rained {round(rain_in, 2)} inches this past week.\nNext rain: {pct}% {name}.",
+    pct = next_chance_of_rain$precipitation_chance,
+    name = tolower(next_chance_of_rain$name)
+  )
+} else {
+  glue("Rained {round(rain_in, 2)} inches this past week.\nNext rain: ?")
+}
+
+post_result <- function() {
+  pbPost(
+    "note",
+    title = 'Do you need to water?',
+    body = message_body,
+    apikey = PUSH_API_KEY,
+    devices = PUSH_DEVICE_ID)
+}
