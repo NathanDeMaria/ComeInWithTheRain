@@ -1,6 +1,7 @@
 provider "aws" {
   profile = "default"
   region  = "us-east-2"
+  version = "~> 2.69"
 }
 
 resource "aws_iam_role" "come_in_with_the_rain" {
@@ -58,4 +59,10 @@ resource "aws_lambda_function" "come_in_with_the_rain" {
       PUSH_DEVICE_ID = var.PUSH_DEVICE_ID
     }
   }
+}
+
+module "schedule" {
+  source      = "./schedule"
+  lambda_arn  = aws_lambda_function.come_in_with_the_rain.arn
+  lambda_name = aws_lambda_function.come_in_with_the_rain.function_name
 }
