@@ -3,3 +3,8 @@
 .RData
 .Ruserdata
 .Renviron
+
+*.zip
+secrets.tfvars
+.terraform/
+terraform.tfstate*
