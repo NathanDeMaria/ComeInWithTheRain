@@ -150,7 +150,7 @@ message_body <- if (nrow(next_chance_of_rain)) {
   glue("Rained {round(rain_in, 2)} inches this past week.\nNext rain: ?")
 }
 
-post_result <- function() {
+post_result <- function(...) {
   pbPost(
     "note",
     title = 'Do you need to water?',
