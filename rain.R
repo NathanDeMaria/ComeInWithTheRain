@@ -78,7 +78,9 @@ forecast <- glue('{grid_url}/forecast') %>%
 forecast <- forecast %>% mutate(precipitation_chance = detailedForecast %>% str_match('[Cc]hance of precipitation is ([0-9]+)%') %>% as.numeric())
 next_chance_of_rain <- forecast %>% filter(is_rainy(shortForecast) | !is.na(precipitation_chance)) %>%
   mutate(startTime = ymd_hms(startTime)) %>%
-  arrange(startTime) %>%
+  # Within the next 36 hours
+  filter(startTime < Sys.time() + hours(36)) %>% 
+  filter(precipitation_chance == max(precipitation_chance)) %>% 
   head(n = 1)
 
 
@@ -136,18 +138,18 @@ get_rain <- function(station_id) {
 
 # Assumes they're sorted so that the closest is first
 station_id <- get_nearby_stations(grid_url)$stationIdentifier[1]
-rain <- get_rain(station_id)
+rain <- get_rain(station_id) %>% filter(day > Sys.time() - days(2))
 rain_in <- sum(rain$rain_m) * 39.3700787
 
 
 message_body <- if (nrow(next_chance_of_rain)) {
   glue(
-    "Rained {round(rain_in, 2)} inches this past week.\nNext rain: {pct}% {name}.",
+    "Rained {round(rain_in, 2)} inches over the past few days.\nNext rain: {pct}% {name}.",
     pct = next_chance_of_rain$precipitation_chance,
     name = tolower(next_chance_of_rain$name)
   )
 } else {
-  glue("Rained {round(rain_in, 2)} inches this past week.\nNext rain: ?")
+  glue("Rained {round(rain_in, 2)} inches over the past few days.\nNext rain: ?")
 }
 
 post_result <- function(...) {
