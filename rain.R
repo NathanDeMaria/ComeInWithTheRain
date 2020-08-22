@@ -79,7 +79,7 @@ forecast <- forecast %>% mutate(precipitation_chance = detailedForecast %>% str_
 next_chance_of_rain <- forecast %>% filter(is_rainy(shortForecast) | !is.na(precipitation_chance)) %>%
   mutate(startTime = ymd_hms(startTime)) %>%
   # Within the next 36 hours
-  filter(startTime < Sys.time() + hours(36)) %>% 
+  filter(startTime < as_datetime(Sys.time()) + hours(36)) %>% 
   filter(precipitation_chance == max(precipitation_chance)) %>% 
   head(n = 1)
 
@@ -138,7 +138,7 @@ get_rain <- function(station_id) {
 
 # Assumes they're sorted so that the closest is first
 station_id <- get_nearby_stations(grid_url)$stationIdentifier[1]
-rain <- get_rain(station_id) %>% filter(day > Sys.time() - days(2))
+rain <- get_rain(station_id) %>% filter(day > as_datetime(Sys.time()) - days(2))
 rain_in <- sum(rain$rain_m) * 39.3700787
 
 
