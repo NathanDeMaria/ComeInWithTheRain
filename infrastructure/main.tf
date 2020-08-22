@@ -41,7 +41,8 @@ resource "aws_lambda_function" "come_in_with_the_rain" {
   handler       = "rain.post_result"
 
   source_code_hash = filebase64sha256("../lambda_function_payload.zip")
-  timeout          = 30
+  timeout          = 60
+  memory_size      = 256
 
   runtime = "provided"
   # Created via https://github.com/NathanDeMaria/aws-lambda-r-runtime/tree/ceddfe8385fb5c3010f34cff7651ba94fdab7a74#aws-lambda-r-runtime-fork
