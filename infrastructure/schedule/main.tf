@@ -1,7 +1,7 @@
 resource "aws_cloudwatch_event_rule" "daily" {
   name                = "daily"
-  description         = "Fires every day at noon CDT"
-  schedule_expression = "cron(0 17 * * ? *)"
+  description         = "Fires every day at 4:30pm CDT"
+  schedule_expression = "cron(30 21 * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "check_lambda" {
